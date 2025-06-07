@@ -82,7 +82,7 @@ function collectPaintings() {
 function sendData() {
       const canvasWidth = parseFloat(document.getElementById("canvasWidth").value);
       const paintings = collectPaintings();
-      fetch("http://localhost:8000/api/pack", {
+      fetch("http://paintings.duckdns.orgq:8000/api/pack", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ canvas_width: canvasWidth, paintings: paintings })
