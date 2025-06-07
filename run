@@ -1,0 +1,4 @@
+#!/usr/bin/bash
+pipenv install "fastapi[standart]"
+pipenv run uvicorn main:app --host 0.0.0.0 --reload
+
