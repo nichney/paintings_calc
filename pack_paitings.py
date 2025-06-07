@@ -1,23 +1,22 @@
 from typing import List, Tuple
+from itertools import product
 
 def add_margins(w: float, h: float) -> Tuple[float, float]:
-    """С каждой стороны нужно добавить по 10см отступов """
     return w + 0.2, h + 0.2
 
-def pack_paintings(canvas_width: float, paintings: List[Tuple[float, float]]) -> Tuple[float, List[dict]]:
+def try_layout(canvas_width: float, max_height: float, paintings: List[Tuple[float, float]], rotation_mask: List[bool]) -> List[dict]:
     paintings_with_margin = []
-    for index, (w, h) in enumerate(paintings):
-        w1, h1 = add_margins(w, h)
-        w2, h2 = add_margins(h, w) # в повёрнутом на 90 градусов состоянии
+    for i, (w, h) in enumerate(paintings):
+        if rotation_mask[i]:
+            w, h = h, w
+        w, h = add_margins(w, h)  # добавляем по 0.1 м с каждой стороны
         paintings_with_margin.append({
-            "index": index,
-            "original": (w1, h1),
-            "rotated": (w2, h2),
-            "raw": (w, h)
+            "index": i,
+            "width": w,
+            "height": h,
+            "raw": (paintings[i][0], paintings[i][1]),
+            "rotated": rotation_mask[i]
         })
-
-    # сортируем по максимальной высоте
-    paintings_with_margin.sort(key=lambda p: -max(p["original"][1], p["rotated"][1]))
 
     layout = []
     current_y = 0.0
@@ -25,37 +24,60 @@ def pack_paintings(canvas_width: float, paintings: List[Tuple[float, float]]) ->
     row_x = 0.0
 
     for p in paintings_with_margin:
-        placed = False # размещена ли предыдущая картина на текущей строке?
-        for is_rotated, (w, h) in enumerate([p["original"], p["rotated"]]): # если да, размещаем следующую
-            if row_x + w <= canvas_width:
-                layout.append({
-                    "x": row_x,
-                    "y": current_y,
-                    "width": w,
-                    "height": h,
-                    "original": p["raw"],
-                    "rotated": bool(is_rotated)
-                })
-                row_x += w
-                row_height = max(row_height, h)
-                placed = True
-                break
-
-        if not placed: # если нет, переходим на новую строку
-            current_y += row_height
-            row_x = 0.0
-            w, h = min([p["original"], p["rotated"]], key=lambda x: x[0])
+        if row_x + p["width"] <= canvas_width:
             layout.append({
                 "x": row_x,
                 "y": current_y,
-                "width": w,
-                "height": h,
+                "width": p["width"],
+                "height": p["height"],
                 "original": p["raw"],
-                "rotated": p["rotated"] == (w, h)
+                "rotated": p["rotated"]
             })
-            row_x += w
-            row_height = h
+            row_x += p["width"]
+            row_height = max(row_height, p["height"])
+        else:
+            current_y += row_height
+            if current_y + p["height"] > max_height:
+                return None  # не влезает
+            row_x = 0.0
+            row_height = p["height"]
+            layout.append({
+                "x": row_x,
+                "y": current_y,
+                "width": p["width"],
+                "height": p["height"],
+                "original": p["raw"],
+                "rotated": p["rotated"]
+            })
+            row_x += p["width"]
 
+    # финальный размер холста (без учёта свободного места снизу)
     total_height = current_y + row_height
-    return round(total_height, 3), layout
+    if total_height > max_height:
+        return None
+
+    return layout
+
+def find_min_canvas_length(canvas_width: float, paintings: List[Tuple[float, float]]) -> Tuple[float, List[dict]]:
+    low = 0.1
+    high = 20.0
+    best_layout = None
+    best_length = high
+
+    for _ in range(25):
+        mid = (low + high) / 2
+        found_layout = None
+        for rotation_mask in product([False, True], repeat=len(paintings)):
+            layout = try_layout(canvas_width, mid, paintings, rotation_mask)
+            if layout is not None and len(layout) == len(paintings):  
+                found_layout = layout
+                break
+        if found_layout:
+            best_layout = found_layout
+            best_length = mid
+            high = mid
+        else:
+            low = mid
+
+    return round(best_length, 3), best_layout
 
