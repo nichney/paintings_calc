@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Размещение картин на холсте</title>
+  <style>
+    body { font-family: sans-serif; max-width: 800px; margin: auto; }
+    svg { border: 1px solid #ccc; background: #fefefe; margin-top: 20px; }
+    rect { stroke: black; fill-opacity: 0.5; }
+    text { font-size: 0.03em; }
+    input, button { margin: 5px 0; display: block; }
+    textarea { width: 100%; height: 100px; }
+  </style>
+</head>
+<body>
+  <h1>Размещение картин на холсте</h1>
+
+  <label>Ширина холста (в метрах):</label>
+  <input type="number" id="canvasWidth" value="1.5" step="0.1" min="0.1" />
+
+  <label>Размеры картин (каждая строка: ширина,высота):</label>
+  <div id="paintingsList"></div>
+  <button onclick="addPainting()">+ Добавить картину</button>
+
+
+  <button onclick="sendData()">Рассчитать и визуализировать</button>
+
+  <h2>Визуализация:</h2>
+  <svg id="canvas" width="600" height="2000" viewBox="0 0 1.5 3"></svg>
+
+  <script>
+  function addPainting(width = "", height = "") {
+      const container = document.createElement("div");
+
+      const inputW = document.createElement("input");
+      inputW.type = "number";
+      inputW.placeholder = "Ширина";
+      inputW.step = "0.01";
+      inputW.value = width;
+
+      const inputH = document.createElement("input");
+      inputH.type = "number";
+      inputH.placeholder = "Высота";
+      inputH.step = "0.01";
+      inputH.value = height;
+
+      const removeBtn = document.createElement("button");
+      removeBtn.textContent = "❌";
+      removeBtn.onclick = () => container.remove();
+
+      container.appendChild(inputW);
+      container.appendChild(inputH);
+      container.appendChild(removeBtn);
+
+      document.getElementById("paintingsList").appendChild(container);
+}
+
+function collectPaintings() {
+      const divs = document.getElementById("paintingsList").children;
+      const paintings = [];
+
+      for (let d of divs) {
+        const [wInput, hInput] = d.querySelectorAll("input");
+        const w = parseFloat(wInput.value);
+        const h = parseFloat(hInput.value);
+        if (!isNaN(w) && !isNaN(h)) paintings.push([w, h]);
+      }
+      return paintings;
+}
+
+function sendData() {
+      const canvasWidth = parseFloat(document.getElementById("canvasWidth").value);
+      const paintings = collectPaintings();
+
+      fetch("http://localhost:8000/api/pack", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ canvas_width: canvasWidth, paintings: paintings })
+      })
+        .then(res => res.json())
+        .then(data => drawCanvas(canvasWidth, data.layout, data.canvas_length));
+}
+
+
+function drawCanvas(canvasWidth, layout, canvasLength) {
+  const svg = document.getElementById("canvas");
+  const scale = 500; // 1 метр = 500 пикселей (настраивается)
+
+  const svgWidthPx = canvasWidth * scale;
+  const svgHeightPx = canvasLength * scale;
+
+  svg.setAttribute("width", svgWidthPx);
+  svg.setAttribute("height", svgHeightPx);
+  svg.setAttribute("viewBox", `0 0 ${canvasWidth} ${canvasLength}`);
+  svg.innerHTML = "";
+
+  // фон холста
+  const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  bg.setAttribute("x", 0);
+  bg.setAttribute("y", 0);
+  bg.setAttribute("width", canvasWidth);
+  bg.setAttribute("height", canvasLength);
+  bg.setAttribute("fill", "#fef9f4");
+  bg.setAttribute("stroke", "#ccc");
+  bg.setAttribute("stroke-width", 0.01);
+  svg.appendChild(bg);
+
+  // сами картины
+  layout.forEach((item, index) => {
+    const color = `hsl(${(index * 37) % 360}, 60%, 75%)`;
+
+    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    rect.setAttribute("x", item.x);
+    rect.setAttribute("y", item.y);
+    rect.setAttribute("width", item.width);
+    rect.setAttribute("height", item.height);
+    rect.setAttribute("fill", color);
+    rect.setAttribute("stroke", "#333");
+    rect.setAttribute("stroke-width", 0.005);
+    svg.appendChild(rect);
+
+    // подпись размеров
+    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    text.setAttribute("x", item.x + 0.01);
+    text.setAttribute("y", item.y + 0.03);
+    text.setAttribute("font-size", 0.025);
+    text.setAttribute("fill", "#000");
+    text.textContent = `${item.original[0]}×${item.original[1]}${item.rotated ? " ↻" : ""}`;
+    svg.appendChild(text);
+  });
+}
+
+
+    // автозапуск при загрузке
+        //window.onload = sendData;
+  </script>
+</body>
+</html>
+
