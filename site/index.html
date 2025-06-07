@@ -25,11 +25,13 @@
 
   <button onclick="sendData()">Рассчитать и визуализировать</button>
 
+  <p id="resultText"><em>Здесь появится длина холста…</em></p>
+
   <h2>Визуализация:</h2>
   <svg id="canvas" width="600" height="2000" viewBox="0 0 1.5 3"></svg>
 
   <script>
-  function addPainting(width = "", height = "") {
+  function addPainting(width = "", height = "", count = 1) {
       const container = document.createElement("div");
 
       const inputW = document.createElement("input");
@@ -44,41 +46,57 @@
       inputH.step = "0.01";
       inputH.value = height;
 
+      const inputCount = document.createElement("input");
+      inputCount.type = "number";
+      inputCount.placeholder = "Количество";
+      inputCount.min = 1;
+      inputCount.step = 1;
+      inputCount.value = count;
+
       const removeBtn = document.createElement("button");
       removeBtn.textContent = "❌";
       removeBtn.onclick = () => container.remove();
 
-      container.appendChild(inputW);
-      container.appendChild(inputH);
-      container.appendChild(removeBtn);
-
+      container.append("Ш:", inputW, " В:", inputH, " Кол-во:", inputCount, removeBtn);
       document.getElementById("paintingsList").appendChild(container);
 }
 
 function collectPaintings() {
-      const divs = document.getElementById("paintingsList").children;
-      const paintings = [];
+  const divs = document.getElementById("paintingsList").children;
+  const paintings = [];
 
-      for (let d of divs) {
-        const [wInput, hInput] = d.querySelectorAll("input");
-        const w = parseFloat(wInput.value);
-        const h = parseFloat(hInput.value);
-        if (!isNaN(w) && !isNaN(h)) paintings.push([w, h]);
-      }
-      return paintings;
+  for (let d of divs) {
+    const inputs = d.querySelectorAll("input");
+    const w = parseFloat(inputs[0].value);
+    const h = parseFloat(inputs[1].value);
+    const count = parseInt(inputs[2].value);
+
+    if (!isNaN(w) && !isNaN(h) && count > 0) {
+      for (let i = 0; i < count; i++) paintings.push([w, h]);
+    }
+  }
+  return paintings;
 }
+
 
 function sendData() {
       const canvasWidth = parseFloat(document.getElementById("canvasWidth").value);
       const paintings = collectPaintings();
-
       fetch("http://localhost:8000/api/pack", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ canvas_width: canvasWidth, paintings: paintings })
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ canvas_width: canvasWidth, paintings: paintings })
+    })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("resultText").textContent =
+          `Необходимая длина холста: ${data.canvas_length.toFixed(2)} м`;
+        drawCanvas(canvasWidth, data.layout, data.canvas_length);
       })
-        .then(res => res.json())
-        .then(data => drawCanvas(canvasWidth, data.layout, data.canvas_length));
+      .catch(error => {
+            console.error("Ошибка при запросе:", error);
+            document.getElementById("resultText").textContent = "Произошла ошибка при вычислении.";
+      });
 }
 
 
@@ -107,27 +125,42 @@ function drawCanvas(canvasWidth, layout, canvasLength) {
 
   // сами картины
   layout.forEach((item, index) => {
-    const color = `hsl(${(index * 37) % 360}, 60%, 75%)`;
+  const color = `hsl(${(index * 37) % 360}, 60%, 75%)`;
 
-    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    rect.setAttribute("x", item.x);
-    rect.setAttribute("y", item.y);
-    rect.setAttribute("width", item.width);
-    rect.setAttribute("height", item.height);
-    rect.setAttribute("fill", color);
-    rect.setAttribute("stroke", "#333");
-    rect.setAttribute("stroke-width", 0.005);
-    svg.appendChild(rect);
+  // Граница с учётом отступов (пунктирная)
+  const marginRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  marginRect.setAttribute("x", item.x + 0.1);
+  marginRect.setAttribute("y", item.y + 0.1);
+  marginRect.setAttribute("width", item.width - 0.2);
+  marginRect.setAttribute("height", item.height - 0.2);
+  marginRect.setAttribute("fill", "none");
+  marginRect.setAttribute("stroke", "#999");
+  marginRect.setAttribute("stroke-dasharray", "0.01 0.02");
+  marginRect.setAttribute("stroke-width", 0.003);
+  svg.appendChild(marginRect);
 
-    // подпись размеров
-    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    text.setAttribute("x", item.x + 0.01);
-    text.setAttribute("y", item.y + 0.03);
-    text.setAttribute("font-size", 0.025);
-    text.setAttribute("fill", "#000");
-    text.textContent = `${item.original[0]}×${item.original[1]}${item.rotated ? " ↻" : ""}`;
-    svg.appendChild(text);
-  });
+  // Основной прямоугольник
+  const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  rect.setAttribute("x", item.x);
+  rect.setAttribute("y", item.y);
+  rect.setAttribute("width", item.width);
+  rect.setAttribute("height", item.height);
+  rect.setAttribute("fill", color);
+  rect.setAttribute("stroke", "#333");
+  rect.setAttribute("stroke-width", 0.005);
+  svg.appendChild(rect);
+
+  // Подпись (внутри или по центру)
+  const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  text.setAttribute("x", item.x + item.width / 2);
+  text.setAttribute("y", item.y + item.height / 2 + 0.01);
+  text.setAttribute("text-anchor", "middle");
+  text.setAttribute("font-size", Math.min(item.width, item.height) * 0.15);
+  text.setAttribute("fill", "#000");
+  text.textContent = `${item.original[0]}×${item.original[1]}${item.rotated ? " ↻" : ""}`;
+  svg.appendChild(text);
+});
+
 }
 
 
