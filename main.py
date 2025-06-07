@@ -1,20 +1,29 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Tuple
+from typing import List
+
 from pack_paitings import pack_paintings  
 
 app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=["*"])
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class PaintingsInput(BaseModel):
     canvas_width: float
-    paintings: List[Tuple[float, float]]
+    paintings: List[List[float]]  
 
 @app.post("/api/pack")
-def pack(paintings: PaintingsInput):
-    height, layout = pack_paintings(paitings.canvas_width, paitings.paintings)
-    return {"canvas_length": height, "layout": layout}
+def pack(input_data: PaintingsInput):
+    height, layout = pack_paintings(input_data.canvas_width, input_data.paintings)
+    return {
+        "canvas_length": height,
+        "layout": layout
+    }
 
