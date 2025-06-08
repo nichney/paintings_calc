@@ -7,21 +7,23 @@
     --border-color: #dee2e6;
     --text-color: #343a40;
     --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    --spacing-unit: 1rem; /* Base unit for consistent spacing */
 }
 
 body {
     font-family: var(--font-family);
     margin: 0;
-    padding: 20px;
+    padding: var(--spacing-unit); /* Use relative unit for padding */
     background-color: var(--background-light);
     color: var(--text-color);
     line-height: 1.6;
+    font-size: 16px; /* Base font size */
 }
 
 .container {
     max-width: 900px;
-    margin: 20px auto;
-    padding: 30px;
+    margin: calc(2 * var(--spacing-unit)) auto; /* Adjusted margin with calc */
+    padding: calc(1.5 * var(--spacing-unit)); /* Adjusted padding with calc */
     background-color: #ffffff;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -30,32 +32,38 @@ body {
 h1, h2 {
     color: var(--primary-color);
     text-align: center;
-    margin-bottom: 25px;
+    margin-bottom: calc(1.5 * var(--spacing-unit));
+    font-size: 2em; /* Relative font size */
+}
+
+h2 {
+    font-size: 1.6em;
 }
 
 .input-group {
-    margin-bottom: 20px;
+    margin-bottom: var(--spacing-unit);
 }
 
 label {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 0.5rem; /* Relative margin */
     font-weight: bold;
     color: var(--secondary-color);
+    font-size: 0.95em;
 }
 
 .input-field {
-    width: calc(100% - 20px);
-    padding: 12px;
+    width: 100%; /* Full width */
+    padding: 0.75rem; /* Relative padding */
     border: 1px solid var(--border-color);
     border-radius: 5px;
-    font-size: 1em;
-    box-sizing: border-box; /* Include padding in width */
+    font-size: 1em; /* Relative font size */
+    box-sizing: border-box;
 }
 
 .button {
     display: inline-block;
-    padding: 12px 20px;
+    padding: 0.75rem 1.25rem; /* Relative padding */
     font-size: 1em;
     font-weight: bold;
     text-align: center;
@@ -64,7 +72,7 @@ label {
     cursor: pointer;
     transition: background-color 0.3s ease, transform 0.2s ease;
     border: none;
-    margin-top: 10px;
+    margin-top: 0.75rem; /* Relative margin */
 }
 
 .button:hover {
@@ -84,8 +92,8 @@ label {
     background-color: var(--primary-color);
     color: white;
     width: 100%;
-    margin-top: 25px;
-    margin-bottom: 25px;
+    margin-top: calc(1.5 * var(--spacing-unit));
+    margin-bottom: calc(1.5 * var(--spacing-unit));
 }
 
 .calculate-button:hover {
@@ -95,45 +103,54 @@ label {
 .paintings-list {
     border: 1px solid var(--border-color);
     border-radius: 5px;
-    padding: 15px;
-    margin-bottom: 15px;
+    padding: 1rem; /* Relative padding */
+    margin-bottom: 1rem; /* Relative margin */
     background-color: #fcfdff;
 }
 
 .paintings-list > div {
     display: flex;
+    flex-wrap: wrap; /* Allow items to wrap on smaller screens */
     align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
-    padding: 8px;
+    gap: 0.5rem; /* Relative gap */
+    margin-bottom: 0.75rem; /* Relative margin */
+    padding: 0.5rem; /* Relative padding */
     border: 1px solid #e9ecef;
     border-radius: 4px;
     background-color: #ffffff;
 }
 
+.paintings-list > div span {
+    white-space: nowrap; /* Prevent labels from breaking */
+    font-size: 0.9em;
+    color: var(--secondary-color);
+}
+
 .paintings-list > div input[type="number"] {
-    flex: 1;
-    padding: 8px;
+    flex: 1; /* Allow inputs to grow */
+    min-width: 60px; /* Minimum width for inputs */
+    padding: 0.5rem; /* Relative padding */
     border: 1px solid #ced4da;
     border-radius: 4px;
-    font-size: 0.9em;
+    font-size: 0.9em; /* Relative font size */
 }
 
 .paintings-list > div button {
     background-color: var(--danger-color);
     color: white;
     border: none;
-    padding: 8px 12px;
+    padding: 0.5rem 0.75rem; /* Relative padding */
     border-radius: 4px;
     cursor: pointer;
     font-size: 0.9em;
     transition: background-color 0.2s ease;
-    margin-top: 0; /* Override default button margin */
+    margin-top: 0;
+    flex-shrink: 0; /* Prevent button from shrinking */
 }
 
 .paintings-list > div button:hover {
     background-color: #c82333;
-    transform: none; /* Override default button transform */
+    transform: none;
 }
 
 .result-text {
@@ -141,8 +158,8 @@ label {
     font-size: 1.1em;
     font-weight: bold;
     color: var(--success-color);
-    margin-top: 20px;
-    padding: 10px;
+    margin-top: 1.25rem;
+    padding: 0.75rem;
     background-color: #e6ffe6;
     border-radius: 5px;
 }
@@ -150,24 +167,96 @@ label {
 .svg-container {
     border: 1px solid var(--border-color);
     background: #fefefe;
-    margin-top: 20px;
+    margin-top: 1.25rem;
     display: flex;
     justify-content: center;
     align-items: center;
     overflow: auto; /* For scroll if content is larger than container */
+    max-width: 100%; /* Ensure it doesn't overflow its parent */
+    height: auto; /* Allow height to adjust */
 }
 
 svg {
-    display: block; /* Removes extra space below SVG */
-    /* Styles for elements within SVG (kept from original for consistency, can be moved to CSS if desired) */
+    display: block;
+    max-width: 100%;
+    height: auto;
 }
 
 svg rect {
     stroke: black;
-    fill-opacity: 0.7; /* Adjusted for better visibility */
+    fill-opacity: 0.7;
 }
 
 svg text {
-    font-size: 0.008em; /* Kept relative size for SVG content */
+    /* Font-family is useful here. Font-size will be set via JS attribute. */
     font-family: var(--font-family);
+    pointer-events: none; /* Prevent text from interfering with interaction if any */
+}
+
+/* Media Queries for smaller screens (e.g., phones) */
+@media (max-width: 768px) {
+    body {
+        padding: calc(0.5 * var(--spacing-unit)); /* Less padding on smaller screens */
+        font-size: 14px; /* Slightly smaller base font size */
+    }
+
+    .container {
+        margin: var(--spacing-unit) auto;
+        padding: var(--spacing-unit);
+    }
+
+    h1 {
+        font-size: 1.8em;
+    }
+
+    h2 {
+        font-size: 1.4em;
+    }
+
+    .button {
+        padding: 0.6rem 1rem;
+        font-size: 0.9em;
+    }
+
+    .paintings-list > div {
+        flex-direction: column; /* Stack items vertically on small screens */
+        align-items: flex-start; /* Align stacked items to the left */
+        padding: 0.75rem;
+    }
+
+    .paintings-list > div span {
+        margin-bottom: 0.25rem; /* Space between label and input */
+    }
+
+    .paintings-list > div input[type="number"] {
+        width: 100%; /* Full width inputs when stacked */
+        margin-bottom: 0.5rem; /* Space between inputs */
+    }
+
+    .paintings-list > div button {
+        width: 100%; /* Full width button when stacked */
+        margin-top: 0.5rem;
+    }
+
+    .svg-container {
+/*        height: 300px; /* Give it a fixed height with overflow */
+        overflow-y: auto;
+        overflow-x: hidden; /* Prevent horizontal scrolling if not needed */
+    }
+}
+
+/* Media Query for very small screens (e.g., older phones) */
+@media (max-width: 480px) {
+    h1 {
+        font-size: 1.5em;
+    }
+
+    .input-field, .button {
+        font-size: 0.9em;
+    }
+
+    .paintings-list > div input[type="number"],
+    .paintings-list > div button {
+        font-size: 0.85em;
+    }
 }

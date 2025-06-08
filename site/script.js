@@ -7,12 +7,14 @@ function addPainting(width = "", height = "", count = 1) {
     inputW.placeholder = "Ширина";
     inputW.step = "0.01";
     inputW.value = width;
+    inputW.setAttribute("aria-label", "Ширина картины"); // Accessibility
 
     const inputH = document.createElement("input");
     inputH.type = "number";
     inputH.placeholder = "Высота";
     inputH.step = "0.01";
     inputH.value = height;
+    inputH.setAttribute("aria-label", "Высота картины"); // Accessibility
 
     const inputCount = document.createElement("input");
     inputCount.type = "number";
@@ -20,11 +22,13 @@ function addPainting(width = "", height = "", count = 1) {
     inputCount.min = 1;
     inputCount.step = 1;
     inputCount.value = count;
+    inputCount.setAttribute("aria-label", "Количество картин"); // Accessibility
 
     const removeBtn = document.createElement("button");
     removeBtn.textContent = "❌";
     removeBtn.className = "remove-button"; // Add class for styling
     removeBtn.onclick = () => container.remove();
+    removeBtn.setAttribute("aria-label", "Удалить картину"); // Accessibility
 
     const labelW = document.createElement("span");
     labelW.textContent = "Ш:";
@@ -48,10 +52,16 @@ function collectPaintings() {
         const h = parseFloat(inputs[1].value);
         const count = parseInt(inputs[2].value);
 
-        if (!isNaN(w) && !isNaN(h) && count > 0) {
+        if (!isNaN(w) && !isNaN(h) && w > 0 && h > 0 && count > 0) { // Added validation for positive dimensions
             for (let i = 0; i < count; i++) {
                 paintings.push([w, h]);
             }
+        } else if (isNaN(w) || isNaN(h) || w <= 0 || h <= 0) {
+            alert("Пожалуйста, введите корректные положительные значения для ширины и высоты картин.");
+            return null; // Indicate an error
+        } else if (count <= 0) {
+            alert("Количество картин должно быть больше 0.");
+            return null; // Indicate an error
         }
     }
     return paintings;
@@ -63,8 +73,20 @@ async function sendData() {
     const paintings = collectPaintings();
     const resultTextElement = document.getElementById("resultText");
 
+    if (paintings === null) { // Check if collectPaintings returned an error
+        resultTextElement.textContent = "Проверьте введенные данные для картин.";
+        resultTextElement.style.color = "var(--danger-color)";
+        return;
+    }
+
     if (paintings.length === 0) {
         resultTextElement.textContent = "Пожалуйста, добавьте хотя бы одну картину.";
+        resultTextElement.style.color = "var(--danger-color)";
+        return;
+    }
+
+    if (isNaN(canvasWidth) || canvasWidth <= 0) {
+        resultTextElement.textContent = "Пожалуйста, введите корректную положительную ширину холста.";
         resultTextElement.style.color = "var(--danger-color)";
         return;
     }
@@ -73,7 +95,7 @@ async function sendData() {
     resultTextElement.style.color = "var(--secondary-color)";
 
     try {
-        const response = await fetch("http://paintings.duckdns.org:8000/api/pack", {
+        const response = await fetch("https://api-paintings.duckdns.org/api/pack", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ canvas_width: canvasWidth, paintings: paintings })
@@ -98,21 +120,16 @@ async function sendData() {
 
 function drawCanvas(canvasWidth, layout, canvasLength) {
     const svg = document.getElementById("canvas");
-    // Calculate a dynamic scale based on SVG width and desired pixel size per meter
-    // Let's assume 1 meter = 300 pixels for a default width of 600px, so canvasWidth * 300 is base for SVG width
-    const svgBaseWidthPx = 600; // The fixed width of the SVG container
-    const scale = svgBaseWidthPx / canvasWidth; // Scale for 1 meter in pixels
+    const svgContainerWidthPx = svg.parentElement.clientWidth;
+    const scale = svgContainerWidthPx / canvasWidth;
 
-    // Ensure viewBox matches actual dimensions for proper scaling
-    // The height of the SVG will be dynamically set to fit the content
     const svgHeightPx = canvasLength * scale;
 
-    svg.setAttribute("width", svgBaseWidthPx); // Maintain the fixed width set in HTML for visual consistency
-    svg.setAttribute("height", Math.max(200, svgHeightPx)); // Set min height to avoid collapsing, otherwise calculated height
-    svg.setAttribute("viewBox", `0 0 ${canvasWidth} ${canvasLength}`); // viewBox defines the internal coordinate system
-    svg.innerHTML = ""; // Clear previous drawings
+    svg.setAttribute("width", svgContainerWidthPx);
+    svg.setAttribute("height", Math.max(200, svgHeightPx));
+    svg.setAttribute("viewBox", `0 0 ${canvasWidth} ${canvasLength}`);
+    svg.innerHTML = "";
 
-    // background of the canvas
     const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     bg.setAttribute("x", 0);
     bg.setAttribute("y", 0);
@@ -123,24 +140,20 @@ function drawCanvas(canvasWidth, layout, canvasLength) {
     bg.setAttribute("stroke-width", 0.01);
     svg.appendChild(bg);
 
-    // paintings themselves
     layout.forEach((item, index) => {
-        const color = `hsl(${(index * 37) % 360}, 60%, 75%)`; // Distinct colors
+        const color = `hsl(${(index * 37) % 360}, 60%, 75%)`;
 
-        // Dashed border for margin
         const marginRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-        // These values represent the actual coordinates and dimensions in meters
         marginRect.setAttribute("x", item.x + 0.1);
         marginRect.setAttribute("y", item.y + 0.1);
         marginRect.setAttribute("width", item.width - 0.2);
         marginRect.setAttribute("height", item.height - 0.2);
         marginRect.setAttribute("fill", "none");
         marginRect.setAttribute("stroke", "#999");
-        marginRect.setAttribute("stroke-dasharray", "0.01 0.02"); // Dash pattern in user units
-        marginRect.setAttribute("stroke-width", 0.003); // Stroke width in user units
+        marginRect.setAttribute("stroke-dasharray", "0.01 0.02");
+        marginRect.setAttribute("stroke-width", 0.003);
         svg.appendChild(marginRect);
 
-        // Main rectangle for the painting
         const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
         rect.setAttribute("x", item.x);
         rect.setAttribute("y", item.y);
@@ -151,13 +164,22 @@ function drawCanvas(canvasWidth, layout, canvasLength) {
         rect.setAttribute("stroke-width", 0.005);
         svg.appendChild(rect);
 
-        // Text label
         const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
         text.setAttribute("x", item.x + item.width / 2);
-        text.setAttribute("y", item.y + item.height / 2 + 0.01); // Adjust y for vertical centering
+        text.setAttribute("y", item.y + item.height / 2 + 0.01);
         text.setAttribute("text-anchor", "middle");
         text.setAttribute("fill", "#000");
-        text.textContent = `${item.original[0]}×${item.original[1]}${item.rotated ? " ↻" : ""}`;
+	text.textContent = `${item.original[0].toFixed(2)}×${item.original[1].toFixed(2)}${item.rotated ? " ↻" : ""}`;
+
+        // Determine font size in SVG user units (meters)
+        const desiredMinFontSize = 0.008; // This is your desired minimum size in meters
+        const dynamicFontSizeFactor = 0.15; // How much of the painting's smaller dimension the text should take
+
+        // Calculate font size: either the dynamic size or the desired minimum, whichever is larger.
+        const calculatedFontSize = Math.min(item.width, item.height) * dynamicFontSizeFactor;
+        const finalFontSize = Math.max(desiredMinFontSize, calculatedFontSize);
+
+        text.setAttribute("font-size", finalFontSize); // Set font size directly in SVG user units (no 'em')
         svg.appendChild(text);
     });
 }
